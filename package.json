@@ -1,0 +1,11 @@
+{
+  "name": "trello-clone",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"cd trello-clone-api && npm run dev\" \"cd trello-clone-client && npm run dev\"",
+    "build": "cd trello-clone-api && npm run build && cd ../trello-clone-client && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
