@@ -6,7 +6,8 @@ import { In } from 'typeorm';
 import { Card } from './entities/card.entity';
 
 const app = express();
-const PORT = 8888;
+const PORT = parseInt(process.env.PORT || '8888', 10);
+
 app.use(express.json());
 const allowedOrigin = [
   'http://localhost:5173',
@@ -187,7 +188,7 @@ app.put('/cards', async (req, res) => {
 
 AppDataSource.initialize().then(() => {
   console.log('データベースと接続しました');
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`サーバーがポート${PORT}で起動しました`);
   });
 });
