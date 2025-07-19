@@ -1,9 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
-import { Card } from "./card.entity";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Card } from './card.entity';
+
 @Entity()
 export class List {
-
-  @PrimaryGeneratedColumn()//値が自動的に生成
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Column()
@@ -12,12 +19,7 @@ export class List {
   @Column()
   position!: number;
 
-  @OneToMany(() => Card, (card) => card.list, { cascade: true })//カードとリストの関係性
-  //リストは複数のカードを持っている
-  //リストを削除すると、関連するカードも削除される
-//デコレーターがついたものはカラムには作成されないが、tsでそのままアクセスして使える。list.cardsとかで。逆にcard.listも。
-
-
+  @OneToMany(() => Card, (card) => card.list, { cascade: true })
   cards?: Card[];
 
   @CreateDateColumn()
@@ -25,5 +27,4 @@ export class List {
 
   @UpdateDateColumn()
   readonly updatedAt?: Date;
-
 }

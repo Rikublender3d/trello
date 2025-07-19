@@ -1,6 +1,12 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { List } from "./list.entity";
-
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { List } from './list.entity';
 
 @Entity()
 export class Card {
@@ -10,7 +16,7 @@ export class Card {
   @Column()
   title!: string;
 
-  @Column({ type: "text", nullable: true })//空でもいい
+  @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column()
@@ -25,14 +31,12 @@ export class Card {
   @Column()
   listId!: number;
 
-  @ManyToOne(() => List, (list) => list.cards, { onDelete: "CASCADE" })//リストを削除すると、関連するカードも削除される
-  list?: List;
-  //逆にカードは複数,リストは一つ
+  @ManyToOne(() => List, (list) => list.cards, { onDelete: 'CASCADE' })
+  list!: List;
 
   @CreateDateColumn()
-  readonly createdAt?: Date;//データが作成された時間,勝手に入るカラムでも編集したくないのでreadonly
+  readonly createdAt?: Date;
 
   @UpdateDateColumn()
-  readonly updatedAt?: Date;//更新された時のじかんをこれに入れてくれる。
-  //いつ作成されたか、いつ更新されたかは実際にアプリケーション上で使わなくても大事。
+  readonly updatedAt?: Date;
 }

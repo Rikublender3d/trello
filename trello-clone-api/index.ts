@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 8888;
 // CORS設定（重複を削除）
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-trello-clone.vercel.app'] // 実際のデプロイURLに変更
+    ? ['https://trello-lxh5.vercel.app'] // 実際のデプロイURLに変更
     : ['http://localhost:5173']
 }));
 

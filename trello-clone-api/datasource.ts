@@ -1,15 +1,11 @@
-import { DataSource } from "typeorm";
-import { List } from "./entities/list.entity";
-import { Card } from "./entities/card.entity";
+import { DataSource } from 'typeorm';
 
 export const AppDataSource = new DataSource({
   type: 'sqlite',
-  database: process.env.NODE_ENV === 'production'
-    ? '/tmp/trello-clone.sqlite' // Vercelの一時ディレクトリ
-    : 'trello-clone.sqlite',     // ローカル開発用
+  database: 'trello-clone.sqlite',
   synchronize: true,
-  logging: process.env.NODE_ENV !== 'production', // 本番では無効化
-  entities: [List, Card], // パス指定ではなく実際のエンティティクラスを指定
+  logging: false,
+  entities: ['entities/*.entity.ts'],
   migrations: [],
   subscribers: [],
 });
