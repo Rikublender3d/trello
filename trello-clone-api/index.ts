@@ -8,7 +8,14 @@ import { Card } from './entities/card.entity';
 const app = express();
 const PORT = 8888;
 app.use(express.json());
-app.use(cors());
+const allowedOrigin = [
+  'http://localhost:5173',
+  'https://trello-lxh5.vercel.app'
+];
+const options: cors.CorsOptions = {
+  origin: allowedOrigin
+};
+app.use(cors(options));
 
 const listRepository = AppDataSource.getRepository(List);
 const cardRepository = AppDataSource.getRepository(Card);
