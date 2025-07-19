@@ -1,107 +1,186 @@
-import express from "express";
-import { AppDataSource } from "./datasource";
-import cors from "cors";
-import { List } from "./entities/list.entity";
-import { Card } from "./entities/card.entity";
-import { In } from "typeorm";
+import express from 'express';
+import { AppDataSource } from './datasource';
+import cors from 'cors';
+import { List } from './entities/list.entity';
+import { In } from 'typeorm';
+import { Card } from './entities/card.entity';
 
 const app = express();
-const PORT = process.env.PORT || 8888;
-
-// CORS設定（重複を削除）
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://trello-lxh5.vercel.app'] // 実際のデプロイURLに変更
-    : ['http://localhost:5173']
-}));
-
+const PORT = 8888;
 app.use(express.json());
+app.use(cors());
 
-// データベース初期化を待つ
-let isDbInitialized = false;
-let listRepository: any;
-let cardRepository: any;
+const listRepository = AppDataSource.getRepository(List);
+const cardRepository = AppDataSource.getRepository(Card);
 
-const initializeDb = async () => {
-  if (!isDbInitialized) {
-    await AppDataSource.initialize();
-    listRepository = AppDataSource.getRepository(List);
-    cardRepository = AppDataSource.getRepository(Card);
-    isDbInitialized = true;
-    console.log("DB接続成功");
-  }
-};
-
-// 全てのAPIルートの前にDB初期化を確認
-app.use(async (req, res, next) => {
-  if (!isDbInitialized) {
-    await initializeDb();
-  }
-  next();
+app.get('/', (req, res) => {
+  res.send('Hello World');
 });
 
-// ヘルスチェック用
-app.get("/", (req, res) => {
-  res.json({ message: "Trello Clone API is running!" });
-});
-
-// 既存のAPIルート（そのまま使用）
-app.post("/lists", async (req, res) => {
+app.post('/lists', async (req, res) => {
   try {
     const { title } = req.body;
+
     const maxPositionListArray = await listRepository.find({
-      order: { position: "DESC" },
+      order: { position: 'DESC' },
       take: 1,
     });
+
     const maxPositionList = maxPositionListArray[0];
-    const nextPosition = maxPositionList != null ? maxPositionList.position + 1 : 0;
-    const list = await listRepository.save({ title, position: nextPosition });
+
+    const nextPosition =
+      maxPositionList != null ? maxPositionList.position + 1 : 0;
+
+    const list = await listRepository.save({
+      title,
+      position: nextPosition,
+    });
+
     res.status(201).json(list);
   } catch (error) {
-    console.log('リスト作成エラー:', error);
-    res.status(500).json({ message: "サーバーエラー" });
+    console.error('リスト作成エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 });
 
-app.get("/lists", async (req, res) => {
+app.get('/lists', async (req, res) => {
   try {
     const lists = await listRepository.find({
-      order: { position: "ASC" },
+      order: { position: 'ASC' },
     });
     res.status(200).json(lists);
   } catch (error) {
-    console.log('リスト取得エラー:', error);
-    res.status(500).json({ message: "サーバーエラー" });
+    console.error('リスト取得エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 });
 
-// 他のAPIルートも同様に続ける...
-app.delete("/lists/:id", async (req, res) => {
+app.delete('/lists/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+
     const existingList = await listRepository.findOne({ where: { id } });
+
     if (existingList == null) {
-      res.status(404).json({ message: "リストが見つかりません" });
+      res.status(404).json({ message: 'リストが見つかりません' });
       return;
     }
-    await listRepository.delete({ id });
-    res.status(200).json({ message: "リストを削除しました" });
+
+    await listRepository.delete(id);
+
+    res.status(200).json({ message: 'リストを削除しました' });
   } catch (error) {
-    console.log('リスト削除エラー:', error);
-    res.status(500).json({ message: "サーバーエラー" });
+    console.error('リスト削除エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 });
 
-// 残りのAPIルートも同じように続ける...
+app.put('/lists', async (req, res) => {
+  try {
+    const { lists } = req.body;
 
-// Vercel用のexport（重要！）
-export default app;
+    const listArray = Array.isArray(lists) ? lists : [lists];
 
-// ローカル開発用
-if (process.env.NODE_ENV !== 'production') {
-  initializeDb().then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+    for await (const list of listArray) {
+      await listRepository.save(list);
+    }
+
+    const updatedLists = await listRepository.findBy({
+      id: In(listArray.map((list) => list.id)),
     });
+
+    res.status(200).json(updatedLists);
+  } catch (error) {
+    console.error('リスト更新エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+});
+
+app.post('/cards', async (req, res) => {
+  try {
+    const { title, listId } = req.body;
+
+    const maxPositionCardArray = await cardRepository.find({
+      where: { listId },
+      order: { position: 'DESC' },
+      take: 1,
+    });
+
+    const maxPositionCard = maxPositionCardArray[0];
+
+    const nextPosition = maxPositionCard != null ? maxPositionCard.position : 0;
+
+    const card = await cardRepository.save({
+      title,
+      listId,
+      position: nextPosition,
+    });
+
+    res.status(201).json(card);
+  } catch (error) {
+    console.error('カード作成エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+});
+
+app.get('/cards', async (req, res) => {
+  try {
+    const cards = await cardRepository.find({
+      order: { position: 'ASC' },
+    });
+
+    res.status(200).json(cards);
+  } catch (error) {
+    console.error('カード取得エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+});
+
+app.delete('/cards/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const existingCard = await cardRepository.findOne({
+      where: { id },
+    });
+
+    if (existingCard == null) {
+      res.status(404).json({ message: 'カードが見つかりません' });
+      return;
+    }
+
+    await cardRepository.delete(id);
+    res.status(200).json({ message: 'カードを削除しました' });
+  } catch (error) {
+    console.error('カード削除エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+});
+
+app.put('/cards', async (req, res) => {
+  try {
+    const { cards } = req.body;
+
+    const cardArray = Array.isArray(cards) ? cards : [cards];
+
+    for await (const card of cardArray) {
+      await cardRepository.save(card);
+    }
+
+    const updatedCards = await cardRepository.findBy({
+      id: In(cardArray.map((card) => card.id)),
+    });
+
+    res.status(200).json(updatedCards);
+  } catch (error) {
+    console.error('カード更新エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+});
+
+AppDataSource.initialize().then(() => {
+  console.log('データベースと接続しました');
+  app.listen(PORT, () => {
+    console.log(`サーバーがポート${PORT}で起動しました`);
   });
-}
+});
