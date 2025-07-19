@@ -6,17 +6,45 @@ import { In } from 'typeorm';
 import { Card } from './entities/card.entity';
 
 const app = express();
+// RenderはPORT環境変数を自動的に設定します。設定されていない場合は8888を使用します。
 const PORT = parseInt(process.env.PORT || '8888', 10);
 
 app.use(express.json());
-const allowedOrigin = [
-  'http://localhost:5173',
-  'https://trello-lxh5.vercel.app'
-];
-const options: cors.CorsOptions = {
-  origin: allowedOrigin
+
+// ----------------------------------------------------
+// CORS設定の改善
+// ----------------------------------------------------
+
+// 環境変数 NODE_ENV を使用して、開発環境と本番環境を区別します。
+// Renderでは通常、NODE_ENVは 'production' に設定されます。
+const isProduction = process.env.NODE_ENV === 'production';
+
+let allowedOrigin: string | string[];
+
+if (isProduction) {
+  // 本番環境では、Renderの環境変数に設定されたフロントエンドのURLを使用します。
+  // Renderの環境変数に FRONTEND_URL=https://trello-lxh5.vercel.app を設定してください。
+  allowedOrigin = process.env.FRONTEND_URL || 'https://trello-lxh5.vercel.app'; // 環境変数が設定されていない場合のフォールバック
+  if (!process.env.FRONTEND_URL) {
+    console.warn('警告: 環境変数 FRONTEND_URL が本番環境で設定されていません。CORSオリジンはデフォルト値に設定されます。');
+  }
+} else {
+  // 開発環境では、ローカルのフロントエンドのURLを許可します。
+  allowedOrigin = 'http://localhost:5173';
+}
+
+const corsOptions: cors.CorsOptions = {
+  origin: allowedOrigin,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'], // 許可するHTTPメソッド
+  credentials: true, // クッキーや認証情報を許可する場合にtrueに設定
+  optionsSuccessStatus: 204 // プリフライトリクエスト成功時のステータスコード
 };
-app.use(cors(options));
+
+app.use(cors(corsOptions));
+
+// ----------------------------------------------------
+// その他のルートとミドルウェア
+// ----------------------------------------------------
 
 const listRepository = AppDataSource.getRepository(List);
 const cardRepository = AppDataSource.getRepository(Card);
@@ -116,7 +144,9 @@ app.post('/cards', async (req, res) => {
 
     const maxPositionCard = maxPositionCardArray[0];
 
-    const nextPosition = maxPositionCard != null ? maxPositionCard.position : 0;
+    // maxPositionCard が存在しない場合、nextPosition を 0 に設定
+    const nextPosition = maxPositionCard != null ? maxPositionCard.position + 1 : 0;
+
 
     const card = await cardRepository.save({
       title,
@@ -191,4 +221,4 @@ AppDataSource.initialize().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`サーバーがポート${PORT}で起動しました`);
   });
-});
+}).catch(error => console.error('データベース接続エラー:', error));
